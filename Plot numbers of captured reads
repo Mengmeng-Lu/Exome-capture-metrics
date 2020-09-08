@@ -1,0 +1,23 @@
+#### Count the nubmers of captured reads on target/near-target/off-target regions using the *.mapped.bam file of each sample.
+
+bedtools intersect -abam <*.mapped.bam> -b <target_regions_coord.bed>  -f 0.75 > <*.overlap.bam>
+
+samtools  flagstat <*.overlap.bam> > <*.overlap.bam.stats>
+
+###### Generate a <numbers_of_captured_reads.txt> file including four columns as: 
+######  sample_ID numbers_Reads_on_target numbers_Reads_on_near-target  numbers_Reads_on_off-target
+
+
+#### Step two: Barplot to show the number of captured reads of each sample on target/near-target/off-target regions.
+
+R
+ 
+library(RColorBrewer)
+
+da<-t(as.matrix(read.table("numbers_of_captured_reads.txt",header=TRUE,row.names=1)))
+pdf("numbers_of_captured_reads.pdf")
+par(mar=c(5,6,4,2))
+barplot(da,ylab=NA,las=2, main="Captured reads",cex.main=1.4,ylim=c(0,40000000),col=brewer.pal(3,"Accent"),cex.axis=1.2)
+legend("topleft",cex=1.4,legend=c("On target","Near-target","Off-target"),col=brewer.pal(3,"Accent"),pch=15,bty="n")
+title(ylab="Numbers of reads",line=4,cex.lab=1.5)
+dev.off()
