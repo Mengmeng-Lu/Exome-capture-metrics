@@ -1,0 +1,81 @@
+#### Count the numbers of bases of each sample on target/near-target/off-target regions.
+
+samtools  depth  -b <target_coord.bed>  -q 30 -Q 20 <*.mapped.bam> > <*.target.cov>
+
+#### Count the cumulative numbers of bases of each sample on target/near-target/off-target regions
+
+R
+
+print(files <- list.files(pattern="*.target.cov"))
+da<-list()
+da_new<-list()
+for (i in 1:length(files)) {
+da[[i]]<-read.table(files[i],header=F)
+da_new[[i]]<-data.frame(cumsum(rev(table(da[[i]]$V3))))
+write.table(da_new[[i]],paste(files[i],".cumsum",sep=""))
+}
+
+
+##### As shown in the manuscript, there are 20 indSeq and one poolSeq file.
+##### Plot the cumulative numbers of bases of each file on target/near-target/off-target regions.
+
+print(targetfiles <- list.files(pattern=".target.cov.cumsum"))
+da_target<-list()
+da_target_new<-list()
+for (i in 1:length(targetfiles)) {
+da_target[[i]]<-read.table(targetfiles[i],header=T,row.names=NULL)
+colnames(da_target[[i]])<-c("depth","cumsum")
+total<-da_target[[i]][dim(da_target[[i]])[1],2]
+fraction<-da_target[[i]][,"cumsum"]/total
+da_target_new[[i]]<-cbind(da_target[[i]],fraction)
+}
+
+
+print(nearfiles <- list.files(pattern=".neartarget.cov.cumsum"))
+da_near<-list()
+da_near_new<-list()
+for (i in 1:length(nearfiles)) {
+da_near[[i]]<-read.table(nearfiles[i],header=T,row.names=NULL)
+colnames(da_near[[i]])<-c("depth","cumsum")
+total<-da_near[[i]][dim(da_near[[i]])[1],2]
+fraction<-da_near[[i]][,"cumsum"]/total
+da_near_new[[i]]<-cbind(da_near[[i]],fraction)
+}
+
+print(offfiles <- list.files(pattern=".offtarget.cov.cumsum"))
+da_off<-list()
+da_off_new<-list()
+for (i in 1:length(offfiles)) {
+da_off[[i]]<-read.table(offfiles[i],header=T,row.names=NULL)
+colnames(da_off[[i]])<-c("depth","cumsum")
+total<-da_off[[i]][dim(da_off[[i]])[1],2]
+fraction<-da_off[[i]][,"cumsum"]/total
+da_off_new[[i]]<-cbind(da_off[[i]],fraction)
+}
+
+
+pdf("coverage_plot_bases.pdf")
+par(mar=c(4.5,5,0.8,0.8)+.1)
+plot(da_target[[1]][,"depth"],da_target[[1]][,"cumsum"],type="n",xlim=c(0,100),ylim=c(0,1e+08),xlab="Sequencing depth (X)",ylab="Cumulative numbers of bases",xaxt="n",yaxt="n",cex
+.lab=1.8)
+grid()
+axis(side=1,at=seq(0,100,by=20),cex.axis=1.3)
+axis(side=2,at=seq(0,1e+08,by=2e+07),cex.axis=1.3)
+for (i in 1:20){
+lines(da_target[[i]][,"depth"],da_target[[i]][,"cumsum"],col="gray70",lty=2,lwd=0.4)}
+for (i in 21:21){
+lines(da_target[[i]][,"depth"],da_target[[i]][,"cumsum"],col="gray11",lwd=3)}
+for (i in 1:20){
+lines(da_near[[i]][,"depth"],da_near[[i]][,"cumsum"],col="brown1",lty=2,lwd=0.4)}
+for (i in 21:21){
+lines(da_near[[i]][,"depth"],da_near[[i]][,"cumsum"],col="brown4",lwd=3)}
+for (i in 1:20){
+lines(da_off[[i]][,"depth"],da_off[[i]][,"cumsum"],col="cyan",lty=2,lwd=0.4)}
+for (i in 21:21){
+lines(da_off[[i]][,"depth"],da_off[[i]][,"cumsum"],col="darkblue",lwd=3)}
+
+legend("topright",legend=c("On target individual","On target pooled","Near-target individual","Near-target pooled","Off-target individual","Off-target pooled"),col=c("gray70","gray11","brown1"
+,"brown4","cyan","darkblue"),lty=2:1, lwd=3, cex=1.25)
+
+dev.off()
+
